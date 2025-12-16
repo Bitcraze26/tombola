@@ -1,5 +1,13 @@
+<<<<<<< HEAD
 node_modules
 dist
 .git
 .env
 public/sounds/*.wav
+=======
+node_modules
+dist
+.git
+.env
+public/sounds/*.wav
+>>>>>>> a8de275 (inizio)

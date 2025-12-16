@@ -1,0 +1,74 @@
+.tabellone-container {
+    background: var(--tombola-card-bg);
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    margin-top: 1rem;
+    border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.tabellone-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 0.5rem;
+}
+
+.tombola-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-weight: 700;
+    color: var(--tombola-text-muted);
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    font-size: 1.2rem;
+}
+
+.tombola-cell.drawn {
+    background-color: var(--tombola-red);
+    color: white;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+    transform: scale(0.95);
+}
+
+.tombola-cell.last-drawn {
+    background-color: var(--tombola-gold);
+    color: #000;
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: scale(1.1);
+    z-index: 10;
+    border: 2px solid white;
+    box-shadow: 0 0 15px var(--tombola-gold-dim);
+}
+
+@media (max-width: 768px) {
+    .tabellone-grid {
+        grid-template-columns: repeat(10, 1fr);
+        /* Keep 10 columns but smaller */
+        gap: 2px;
+    }
+
+    .tabellone-container {
+        padding: 0.5rem;
+    }
+
+    .tombola-cell {
+        font-size: 0.8rem;
+        border-radius: 4px;
+        aspect-ratio: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .tabellone-grid {
+        gap: 1px;
+    }
+
+    .tombola-cell {
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+}
