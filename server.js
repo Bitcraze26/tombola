@@ -4,13 +4,24 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 
 const app = express();
-app.use(cors());
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://tombola-kappa-wine.vercel.app",
+    "https://tombola-kappa-wine.vercel.app/"
+];
+
+app.use(cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
+}));
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "https://tombola-kappa-wine.vercel.app/", // In production, specify your frontend URL
-        methods: ["GET", "POST"]
+        origin: allowedOrigins,
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
