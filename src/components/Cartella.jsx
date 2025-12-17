@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
 import { Trophy, RefreshCw, Plus, Trash2, RotateCcw } from 'lucide-react';
 import './Cartella.css';
-
-const socket = io('http://localhost:3001');
+import socket from '../socket';
 
 const generateCardGrid = () => {
     const card = Array(3).fill(null).map(() => Array(9).fill(null));
@@ -139,10 +137,12 @@ function Cartella() {
             </header>
 
             <div className="cards-list">
-                {cards.map((cardData) => (
+                {Array.isArray(cards) && cards.map((cardData) => (
                     <div key={cardData.id} className="card-wrapper">
                         <div className="card-controls">
-                            <span className="card-id">Cartella #{cardData.id.split('-').pop()}</span>
+                            <span className="card-id">
+                                Cartella #{String(cardData.id || '').split('-').pop() || '0000'}
+                            </span>
                             <button
                                 className="btn-delete"
                                 onClick={(e) => {
@@ -156,11 +156,11 @@ function Cartella() {
                             </button>
                         </div>
                         <div className="card-grid">
-                            {cardData.grid.map((row, rowIndex) => (
+                            {Array.isArray(cardData.grid) && cardData.grid.map((row, rowIndex) => (
                                 <div key={rowIndex} className="card-row">
-                                    {row.map((num, colIndex) => {
-                                        const isMarked = cardData.marked.includes(num);
-                                        const isServerDrawn = num !== null && drawnNumbers.includes(num);
+                                    {Array.isArray(row) && row.map((num, colIndex) => {
+                                        const isMarked = cardData.marked?.includes(num);
+                                        const isServerDrawn = num !== null && Array.isArray(drawnNumbers) && drawnNumbers.includes(num);
                                         return (
                                             <div
                                                 key={colIndex}
@@ -179,7 +179,7 @@ function Cartella() {
             </div>
 
             <div className="cartella-footer">
-                <p>Numeri estratti dal tabellone: <strong>{drawnNumbers.length}</strong> / 90</p>
+                <p>Numeri estratti dal tabellone: <strong>{Array.isArray(drawnNumbers) ? drawnNumbers.length : 0}</strong> / 90</p>
                 <p className="help-text">Tocca un numero per segnarlo. I numeri gialli sono stati estratti!</p>
             </div>
         </div>

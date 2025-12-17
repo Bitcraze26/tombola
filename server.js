@@ -14,6 +14,8 @@ const io = new Server(httpServer, {
     }
 });
 
+const SESSION_PASSWORD = "tombola2025";
+
 let gameState = {
     drawnNumbers: [],
     currentNumber: null,
@@ -23,15 +25,22 @@ let gameState = {
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 
-    // Send current state to new client
-    socket.emit('stateUpdate', gameState);
+    socket.on('authenticate', (password) => {
+        if (password === SESSION_PASSWORD) {
+            socket.join('authenticated');
+            socket.emit('authSuccess');
+            socket.emit('stateUpdate', gameState);
+            console.log('Auth success for:', socket.id);
+        } else {
+            socket.emit('authError', 'Password errata');
+        }
+    });
 
     socket.on('drawNumber', (number) => {
         if (!gameState.drawnNumbers.includes(number)) {
             gameState.drawnNumbers.push(number);
             gameState.currentNumber = number;
-            io.emit('stateUpdate', gameState);
-            console.log('Number drawn:', number);
+            io.to('authenticated').emit('stateUpdate', gameState);
         }
     });
 
@@ -41,8 +50,7 @@ io.on('connection', (socket) => {
             currentNumber: null,
             gameActive: true
         };
-        io.emit('stateUpdate', gameState);
-        console.log('Game reset');
+        io.to('authenticated').emit('stateUpdate', gameState);
     });
 
     socket.on('disconnect', () => {

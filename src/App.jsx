@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { Sparkles, RefreshCw, Volume2, VolumeX, Trophy, AlertTriangle, PartyPopper } from 'lucide-react';
+import { Sparkles, RefreshCw, Volume2, VolumeX, Trophy, AlertTriangle, PartyPopper, Lock } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { io } from 'socket.io-client';
 import Tabellone from './components/Tabellone';
 import ExtractionStage from './components/ExtractionStage';
 import Cartella from './components/Cartella';
@@ -11,7 +10,9 @@ import { proverbs } from './data/proverbs';
 import { penalties } from './data/penalties';
 import './App.css';
 
-const socket = io('http://localhost:3001');
+import Login from './components/Login';
+
+import socket from './socket';
 
 function App() {
   const [drawnNumbers, setDrawnNumbers] = useState([]);
@@ -19,17 +20,52 @@ function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentProverb, setCurrentProverb] = useState("");
   const [showPenalty, setShowPenalty] = useState(null);
+
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('tombola_auth') === 'true';
+  });
+  const [authError, setAuthError] = useState('');
+
   const audioRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // If we have a saved password, try to auth immediately
+    const savedPass = sessionStorage.getItem('tombola_pass');
+    if (savedPass) {
+      socket.emit('authenticate', savedPass);
+    }
+
+    socket.on('authSuccess', () => {
+      setIsAuthenticated(true);
+      setAuthError('');
+      sessionStorage.setItem('tombola_auth', 'true');
+    });
+
+    socket.on('authError', (msg) => {
+      setAuthError(msg);
+      setIsAuthenticated(false);
+      sessionStorage.removeItem('tombola_auth');
+      sessionStorage.removeItem('tombola_pass');
+    });
+
     socket.on('stateUpdate', (state) => {
       setDrawnNumbers(state.drawnNumbers);
       setCurrentNumber(state.currentNumber);
     });
 
-    return () => socket.off('stateUpdate');
+    return () => {
+      socket.off('authSuccess');
+      socket.off('authError');
+      socket.off('stateUpdate');
+    };
   }, []);
+
+  const handleLogin = (pass) => {
+    sessionStorage.setItem('tombola_pass', pass);
+    socket.emit('authenticate', pass);
+  };
 
   // Update proverbs and speech when a new number is drawn
   useEffect(() => {
@@ -115,76 +151,94 @@ function App() {
   const lastNumber = drawnNumbers.length > 0 ? drawnNumbers[drawnNumbers.length - 1] : null;
 
   return (
-    <Routes>
-      <Route path="/" element={
-        <div className="container">
-          <header className="header">
-            <h1>Tombola alla Riscossa</h1>
-            <div className="controls-top">
-              <button className="icon-btn" onClick={() => setSoundEnabled(!soundEnabled)}>
-                {soundEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
-              </button>
-              <button
-                className="btn-link"
-                onClick={() => navigate('/cartella')}
-                style={{ marginLeft: '10px', fontSize: '0.8rem', color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                Vai alle Cartelle (Mobile)
-              </button>
-            </div>
-          </header>
+    <div className="app-wrapper">
+      {!isAuthenticated ? (
+        <Login onLogin={handleLogin} error={authError} />
+      ) : (
+        <Routes>
+          <Route path="/" element={
+            <div className="container">
+              <header className="header">
+                <h1>Tombola alla Riscossa</h1>
+                <div className="controls-top">
+                  <button
+                    className="icon-btn"
+                    onClick={() => {
+                      sessionStorage.removeItem('tombola_auth');
+                      sessionStorage.removeItem('tombola_pass');
+                      window.location.reload();
+                    }}
+                    title="Logout"
+                    style={{ marginRight: '10px' }}
+                  >
+                    <Lock size={20} />
+                  </button>
+                  <button className="icon-btn" onClick={() => setSoundEnabled(!soundEnabled)}>
+                    {soundEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
+                  </button>
+                  <button
+                    className="btn-link"
+                    onClick={() => navigate('/cartella')}
+                    style={{ marginLeft: '10px', fontSize: '0.8rem', color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    Vai alle Cartelle (Mobile)
+                  </button>
+                </div>
+              </header>
 
-          <main className="main-content">
-            <section className="left-panel">
-              <ExtractionStage currentNumber={currentNumber} />
-              {currentProverb && (
-                <div className="proverb-box">
-                  <p>💡 <em>{currentProverb}</em></p>
+              <main className="main-content">
+                <section className="left-panel">
+                  <ExtractionStage currentNumber={currentNumber} />
+                  {currentProverb && (
+                    <div className="proverb-box">
+                      <p>💡 <em>{currentProverb}</em></p>
+                    </div>
+                  )}
+
+                  <div className="game-controls">
+                    <button className="btn-primary" onClick={drawNumber} disabled={drawnNumbers.length >= 90}>
+                      <Sparkles size={20} style={{ marginRight: '8px' }} /> Estrai
+                    </button>
+                    <button className="btn-secondary" onClick={resetGame}>
+                      <RefreshCw size={20} />
+                    </button>
+                  </div>
+
+                  <div className="fun-controls">
+                    <button className="btn-fun btn-penalty" onClick={triggerPenalty}>
+                      <AlertTriangle size={18} style={{ marginRight: 4 }} /> Penitenza
+                    </button>
+                    <button className="btn-fun btn-tombola" onClick={triggerTombola}>
+                      <Trophy size={18} style={{ marginRight: 4 }} /> TOMBOLA!
+                    </button>
+                  </div>
+
+                  <div className="stats">
+                    <p>Numeri Estratti: <strong>{drawnNumbers.length}</strong> / 90</p>
+                  </div>
+                </section>
+
+                <section className="right-panel">
+                  <Tabellone drawnNumbers={drawnNumbers} lastNumber={lastNumber} />
+                </section>
+              </main>
+
+              {showPenalty && (
+                <div className="modal-overlay" onClick={() => setShowPenalty(null)}>
+                  <div className="modal-content penalty-modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal-icon"><AlertTriangle size={64} color="#e67e22" /></div>
+                    <h2>Penitenza!</h2>
+                    <p className="penalty-text">{showPenalty}</p>
+                    <button onClick={() => setShowPenalty(null)}>Ho Fatto!</button>
+                  </div>
                 </div>
               )}
-
-              <div className="game-controls">
-                <button className="btn-primary" onClick={drawNumber} disabled={drawnNumbers.length >= 90}>
-                  <Sparkles size={20} style={{ marginRight: '8px' }} /> Estrai
-                </button>
-                <button className="btn-secondary" onClick={resetGame}>
-                  <RefreshCw size={20} />
-                </button>
-              </div>
-
-              <div className="fun-controls">
-                <button className="btn-fun btn-penalty" onClick={triggerPenalty}>
-                  <AlertTriangle size={18} style={{ marginRight: 4 }} /> Penitenza
-                </button>
-                <button className="btn-fun btn-tombola" onClick={triggerTombola}>
-                  <Trophy size={18} style={{ marginRight: 4 }} /> TOMBOLA!
-                </button>
-              </div>
-
-              <div className="stats">
-                <p>Numeri Estratti: <strong>{drawnNumbers.length}</strong> / 90</p>
-              </div>
-            </section>
-
-            <section className="right-panel">
-              <Tabellone drawnNumbers={drawnNumbers} lastNumber={lastNumber} />
-            </section>
-          </main>
-
-          {showPenalty && (
-            <div className="modal-overlay" onClick={() => setShowPenalty(null)}>
-              <div className="modal-content penalty-modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-icon"><AlertTriangle size={64} color="#e67e22" /></div>
-                <h2>Penitenza!</h2>
-                <p className="penalty-text">{showPenalty}</p>
-                <button onClick={() => setShowPenalty(null)}>Ho Fatto!</button>
-              </div>
             </div>
-          )}
-        </div>
-      } />
-      <Route path="/cartella" element={<Cartella />} />
-    </Routes>
+          } />
+          <Route path="/cartella" element={<Cartella />} />
+        </Routes>
+      )}
+    </div>
   );
 }
 
