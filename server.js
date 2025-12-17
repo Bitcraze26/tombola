@@ -9,7 +9,7 @@ app.use(cors());
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "*", // In production, specify your frontend URL
+        origin: "https://tombola-kappa-wine.vercel.app/", // In production, specify your frontend URL
         methods: ["GET", "POST"]
     }
 });
