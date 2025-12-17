@@ -7,7 +7,6 @@ const app = express();
 const allowedOrigins = [
     "http://localhost:5173",
     "https://tombola-kappa-wine.vercel.app",
-    "https://tombola-kappa-wine.vercel.app/"
 ];
 
 app.use(cors({
