@@ -14,7 +14,7 @@ const io = new Server(httpServer, {
     }
 });
 
-const SESSION_PASSWORD = "tombola2025";
+const SESSION_PASSWORD = "ilfornodiveronica";
 
 let gameState = {
     drawnNumbers: [],
