@@ -1,13 +1,11 @@
-<<<<<<< HEAD
 node_modules
 dist
 .git
 .env
 public/sounds/*.wav
-=======
-node_modules
-dist
-.git
-.env
-public/sounds/*.wav
->>>>>>> a8de275 (inizio)
+*.mp3
+*.py
+*.bat
+Dockerfile
+docker-compose.yml
+.dockerignore
